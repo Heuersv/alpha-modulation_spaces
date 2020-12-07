@@ -1,5 +1,6 @@
 import numpy as np
 import multiprocessing as mp
+import matplotlib.pyplot as plt
 
 from plots import plot_matrix, plot_callable
 from functions import doppler_signal, b_spline
@@ -14,25 +15,35 @@ frequency = 200
 signal = doppler_signal(time_location, frequency, interval=[0, 1])
 window = b_spline(4, [0, 1])
 
-alphas = [0]
+alphas = [0, 0.5, 0.9]
 js = range(-10, 10)
 ks = range(-10, 10)
-result = np.zeros((len(alphas), len(ks), len(js)))
+result_dict = {}
 
 
-def get_coefficient(alpha_ind: int, j_ind: int, k_ind: int):
-    alpha1 = alphas[alpha_ind]
-    j1 = js[j_ind]
-    k1 = ks[k_ind]
-
-    result[alpha_ind, k_ind, j_ind] = unweighted_coefficient(signal, window, j1, k1, epsilon, alpha1)
-
-
-pool = mp.Pool(processes=8)
-results_after_processing = [pool.apply_async(get_coefficient, (alpha_index, j_index, k_index))
-                            for alpha_index in range(len(alphas))
-                            for j_index in range(len(js))
-                            for k_index in range(len(ks))]
+def get_coefficients(alpha):
+    coefficients = np.zeros((len(ks), len(js)))
+    for j_index in range(len(js)):
+        for k_index in range(len(ks)):
+            j1 = js[j_index]
+            k1 = ks[k_index]
+            coefficients[k_index][j_index] = unweighted_coefficient(signal, window, j1, k1, epsilon, alpha)
+    return alpha, coefficients
 
 
-plot_matrix(result[0, :, :])
+def log_result(coefs):
+    result_dict[coefs[0]] = coefs[1]
+
+
+if __name__ == '__main__':
+    pool = mp.Pool(processes=mp.cpu_count() - 1)
+    for a in alphas:
+        pool.apply_async(get_coefficients, args=(a, ), callback=log_result)
+    pool.close()
+    pool.join()
+    # for alpha in alphas:
+    #     get_coefficients(alpha)
+
+    for a in alphas:
+        plot_matrix(result_dict[a])
+    plt.show()
