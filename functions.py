@@ -19,4 +19,4 @@ def doppler_signal(time_location, frequency, interval=None):
 
     result = lambda t: np.sin(2 * np.pi * frequency * t * np.exp(-time_location * np.power(t - np.mean(interval), 2)))
 
-    return lambda t: result(t) if interval[0] <= t <= interval[1] else 0
+    return lambda t: result(t) if interval[0] <= t <= interval[1] else 0, interval
